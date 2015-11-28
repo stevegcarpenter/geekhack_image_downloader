@@ -59,7 +59,7 @@ def main():
     lastpageno = int(m.group(1))
 
     # Get directory name
-    absdir = input('Enter the absolute filepath of an existing directory to '
+    absdir = input('\nEnter the absolute filepath of an existing directory to '
                    + 'store thread images.\n'
                    + '(ie imgs directory on the Desktop would become '
                    + '\'/home/your_username/Desktop/imgs\')\nFilepath: ')
