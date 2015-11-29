@@ -22,20 +22,22 @@ def find_images(url):
 
 def downloadImg(url, absdir, localFilename, numLeft):
     try:
+        fullfilepath = os.path.join(absdir, localFilename)
+
+        # Only download images that have not yet been downloaded.
+        # This accounts for the same image uploaded to multiple image
+        # hosting sites
+        if os.path.exists(fullfilepath) is True:
+            return
+
         r = requests.get(url)
         if r.status_code == 200:
             print('Downloading %s... %d remaining'
                   % (localFilename, numLeft))
 
-            fullfilepath = os.path.join(absdir, localFilename)
-
-            # Only download images that have not yet been downloaded.
-            # This accounts for the same image uploaded to multiple image
-            # hosting sites
-            if os.path.exists(fullfilepath) is False:
-                with open(fullfilepath, 'wb') as fo:
-                    for chunk in r.iter_content(4096):
-                        fo.write(chunk)
+            with open(fullfilepath, 'wb') as fo:
+                for chunk in r.iter_content(4096):
+                    fo.write(chunk)
     except:
         pass
 
@@ -50,13 +52,16 @@ def main():
         + '\n      after topic= in the URL address.\nURL: ')
 
     # Collect relevant data from URL
-    m = re.match('.*topic=\d+\.(\d+)$', base_url)
+    m = re.match('.*topic=(\d+)\.(\d+)', base_url)
     if m is None:
         print('URL address doesn\'t match required format, Exiting.')
         return
 
+    # Extract topic number
+    topicno = int(m.group(1))
+
     # Extract last page of thread from URL
-    lastpageno = int(m.group(1))
+    lastpageno = int(m.group(2))
 
     # Get directory name
     absdir = input('\nEnter the absolute filepath of an existing directory to '
@@ -70,10 +75,12 @@ def main():
         return
 
     # Confirmation
-    print('Found directory! Images will be stored in \'%s\'' % absdir)
+    print('Found directory! Images will be stored in \'%s\'\n\n' % absdir
+          + 'Finding all images and elimating duplicates where detectable...\n'
+          + '(Allow a few minutes for large threads)\n')
 
-    nums = [x for x in range(0, lastpageno, 50)]
-    urls = ['https://geekhack.org/index.php?topic=35864.%d' % num
+    nums = [x for x in range(0, lastpageno + 50, 50)]
+    urls = ['https://geekhack.org/index.php?topic=%d.%d' % (topicno, num)
             for num in nums]
 
     todownload = []
