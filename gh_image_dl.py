@@ -2,44 +2,91 @@ import os
 import re
 import requests
 from bs4 import BeautifulSoup
+from collections import defaultdict
 
 
 def find_images(url):
     r = requests.get(url)
     soup = BeautifulSoup(r.content, 'lxml')
 
-    g_data = soup.find_all("a", {"class": "highslide"})
+    # Grab all inner post tags
+    innerpost_tags = soup.find_all('div', {'class': 'inner'})
 
-    todownload = []
-    for item in g_data:
-        try:
-            todownload.append(item.attrs['href'])
-        except:
-            pass
+    image_urls = []
+    post_ids = defaultdict(list)
+    for _ in innerpost_tags:
+        # Search innerpost tag for images
+        image_tags = _.find_all('a', {'class': 'highslide'})
 
-    return todownload
+        if len(image_tags) is 0:
+            continue
+
+        # Get post id. This is saved for generating the report file that will
+        # point each image back to all posts it was uploaded to
+        post_id = _.attrs['id']
+
+        # When a post with images was found, save the image URLs as well as
+        # the post id that they came from
+        for tag in image_tags:
+            try:
+                image_url = tag.attrs['href']
+
+                # Check for invalid images
+                if 'PHPSESSID' in image_url:
+                    continue
+                if image_url.endswith('.gif') or image_url.endswith('.html'):
+                    continue
+
+                # Extract just the image name for URL
+                image_name = image_url.rsplit('/', 1)[-1]
+
+                # Only add to the URL list if the image hasn't been found yet
+                if image_name not in post_ids:
+                    image_urls.append(image_url)
+                    post_ids[image_name].append(post_id)
+
+            except:
+                pass
+
+    return image_urls, post_ids
 
 
 def downloadImg(url, absdir, localFilename, numLeft):
     try:
         fullfilepath = os.path.join(absdir, localFilename)
 
-        # Only download images that have not yet been downloaded.
-        # This accounts for the same image uploaded to multiple image
-        # hosting sites
-        if os.path.exists(fullfilepath) is True:
-            return
-
         r = requests.get(url)
         if r.status_code == 200:
-            print('Downloading %s... %d remaining'
-                  % (localFilename, numLeft))
+            print('Downloading %s... %d remaining' % (localFilename, numLeft))
 
             with open(fullfilepath, 'wb') as fo:
                 for chunk in r.iter_content(4096):
                     fo.write(chunk)
     except:
         pass
+
+
+def generateReport(absdir, all_post_ids, topicno):
+    reportfilepath = os.path.join(absdir, 'report.txt')
+
+    with open(reportfilepath, 'w') as f:
+        for img_name, post_id_list in all_post_ids.items():
+            # Write image name to report file
+            f.write('%s\n' % img_name)
+
+            for post_id in post_id_list:
+                # Extract post number from post id string and create the
+                # post url address
+                m = re.match('msg_(\d+)', post_id)
+                if m is None:
+                    continue
+
+                # Write URL address to file
+                f.write(' https://geekhack.org/index.php?topic=%d.msg%s#msg%s\n'
+                        % (topicno, m.group(1), m.group(1)))
+
+            # Add newline between references
+            f.write('\n')
 
 
 def main():
@@ -75,31 +122,47 @@ def main():
         return
 
     # Confirmation
-    print('Found directory! Images will be stored in \'%s\'\n\n' % absdir
-          + 'Finding all images and elimating duplicates where detectable...\n'
-          + '(Allow a few minutes for large threads)\n')
+    print('Found directory! Images will be stored in \'%s\'\n' % absdir)
 
     nums = [x for x in range(0, lastpageno + 50, 50)]
     urls = ['https://geekhack.org/index.php?topic=%d.%d' % (topicno, num)
             for num in nums]
 
-    todownload = []
-    # Build list of image URL addresses from each page of the thread
-    for url in urls:
-        for img in find_images(url):
-            if ("PHPSESSID" not in img
-                    and not img.endswith('.gif')
-                    and not img.endswith('.html')):
-                todownload.append(img)
+    # dictionary to contain all images found and post id they came from
+    all_image_urls = []
+    all_post_ids = defaultdict(list)
 
-    # remove duplicates (This only accounts for duplicate images with the
-    # exact same URL)
-    todownload = list(set(todownload))
+    # Find and download all images in a single page
+    for i, url in enumerate(urls):
 
-    print("Downloading %d images" % len(todownload))
+        print('Finding images on page %d' % i + 1)
+        image_urls, post_ids = find_images(url)
 
-    for i, url in enumerate(todownload):
-        downloadImg(url, absdir, url.rsplit('/', 1)[-1], len(todownload)-(i+1))
+        print('Found %d images!' % len(image_urls))
+
+        for url in image_urls:
+            # Get the image name from the end of the URL
+            image_name = url.rsplit('/', 1)[-1]
+
+            # If this image has never been encountered before add it
+            if image_name not in all_post_ids:
+                all_image_urls.append(url)
+
+        for _image_name, _post_id_list in post_ids.items():
+            for _post_id in _post_id_list:
+                if _image_name not in all_post_ids:
+                    all_post_ids[_image_name].append(_post_id)
+
+    print('\nDownloading %d images' % len(all_image_urls))
+
+    # Now, download all the images and save them
+    for i, url in enumerate(all_image_urls):
+        downloadImg(url, absdir, url.rsplit('/', 1)[-1],
+                    len(all_image_urls) - (i + 1))
+
+    print('\nGenerating report file...')
+    # Finally, generate the report file
+    generateReport(absdir, all_post_ids, topicno)
 
 if __name__ == '__main__':
     main()
