@@ -135,7 +135,7 @@ def main():
     # Find and download all images in a single page
     for i, url in enumerate(urls):
 
-        print('Finding images on page %d' % i + 1)
+        print('Finding images on page %d' % (i + 1))
         image_urls, post_ids = find_images(url)
 
         print('Found %d images!' % len(image_urls))
