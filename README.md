@@ -55,7 +55,7 @@ URL: enter_url_address_here
 
 Enter the absolute filepath of an directory to store thread images.  
 It will be created if it does not already exist.  
-(ie imgs directory on the Desktop would become '/path/to/directory/here')  
+(ie imgs directory on the Desktop would become '/home/username/Desktop/imgs')  
 Filepath: user_supplied_filepath  
 Images will be stored in '/path/to/directory/here'  
 
