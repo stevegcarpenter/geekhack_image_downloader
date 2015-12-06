@@ -95,19 +95,19 @@ Downloading inawefacesparklyeyesdra.png... 42 remaining
 // directory. When it discovers that some have already been downloaded  
 // it will skip those.  
 
-Generating report file...
-Enter name for report file.
-Filename: <report_file_name>
-Report file will be placed at '/path/to/directory/here/<report_file_name>
+Generating report file...  
+Enter name for report file.  
+Filename: <report_file_name>  
+Report file will be placed at '/path/to/directory/here/<report_file_name>  
 
 // Finally, after downloading all the images, it will request a name to store  
 // the report. The report file consists of all the image names and the URL  
 // address of the exact post they came from. Running head on the report  
 // file that was generated demonstrates how it is formatted below.  
 // Each filename is listed and on the second line a link to the post it was  
-// uploaded in follows.
+// uploaded in follows.  
 
-$ head <report_file_name>
+$ head <report_file_name>  
 
 HrHw4.jpg  
  https://geekhack.org/index.php?topic=35864.msgxxxxxxxxxxxxxxxxxx  
