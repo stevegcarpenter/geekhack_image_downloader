@@ -48,7 +48,7 @@ Geekhack Thread Image Downloader
 
 Enter URL of the LAST page of the thread to download images from.  
 (ie https://geekhack.org/index.php?topic=35864.12100)  
-URL: <enter_url_address_here>  
+URL: enter_url_address_here  
 
 // Once an appropriate URL address has been entered, the script will then  
 // ask for a directory path to store the images.  
@@ -56,7 +56,7 @@ URL: <enter_url_address_here>
 Enter the absolute filepath of an directory to store thread images.  
 It will be created if it does not already exist.  
 (ie imgs directory on the Desktop would become '/path/to/directory/here')  
-Filepath: <user_supplied_filepath>  
+Filepath: user_supplied_filepath  
 Images will be stored in '/path/to/directory/here'  
 
 // After the directory path has been correctly entered, the script will  
@@ -97,8 +97,8 @@ Downloading inawefacesparklyeyesdra.png... 42 remaining
 
 Generating report file...  
 Enter name for report file.  
-Filename: <report_file_name>  
-Report file will be placed at '/path/to/directory/here/<report_file_name>'  
+Filename: report_file_name  
+Report file will be placed at '/path/to/directory/here/report_file_name'  
 
 // Finally, after downloading all the images, it will request a name to store  
 // the report. The report file consists of all the image names and the URL  
@@ -107,7 +107,7 @@ Report file will be placed at '/path/to/directory/here/<report_file_name>'
 // Each filename is listed and on the second line a link to the post it was  
 // uploaded in follows.  
 
-$ head <report_file_name>  
+$ head report_file_name  
 
 HrHw4.jpg  
  https://geekhack.org/index.php?topic=35864.msgxxxxxxxxxxxxxxxxxx  
