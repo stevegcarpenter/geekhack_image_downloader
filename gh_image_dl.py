@@ -51,13 +51,15 @@ def find_images(url):
     return image_urls, post_ids
 
 
-def downloadImg(url, absdir, localFilename, numLeft):
+def download_image(url, absdir, localFilename, numLeft):
     try:
         fullfilepath = os.path.join(absdir, localFilename)
 
-        r = requests.get(url)
-        if r.status_code == 200:
-            print('Downloading %s... %d remaining' % (localFilename, numLeft))
+        if os.path.exists(fullfilepath) is not True:
+            r = requests.get(url)
+            if r.status_code == 200:
+                print('Downloading %s... %d remaining' % (localFilename,
+                                                          numLeft))
 
             with open(fullfilepath, 'wb') as fo:
                 for chunk in r.iter_content(4096):
@@ -66,8 +68,19 @@ def downloadImg(url, absdir, localFilename, numLeft):
         pass
 
 
-def generateReport(absdir, all_post_ids, topicno):
-    reportfilepath = os.path.join(absdir, 'report.txt')
+def generate_report(absdir, all_post_ids, topicno):
+    print('\nGenerating report file...')
+    while True:
+        fn = input('Enter name for report file.\nFilename: ')
+
+        reportfilepath = os.path.join(absdir, fn)
+
+        if os.path.exists(reportfilepath):
+            print('Invalid report file name. Already exists.')
+        else:
+            break
+
+    print('Report file will be placed at \'%s\'' % reportfilepath)
 
     with open(reportfilepath, 'w') as f:
         for img_name, post_id_list in all_post_ids.items():
@@ -111,18 +124,28 @@ def main():
     lastpageno = int(m.group(2))
 
     # Get directory name
-    absdir = input('\nEnter the absolute filepath of an existing directory to '
+    absdir = input('\nEnter the absolute filepath of an directory to '
                    + 'store thread images.\n'
+                   + 'It will be created if it does not already exist.\n'
                    + '(ie imgs directory on the Desktop would become '
                    + '\'/home/your_username/Desktop/imgs\')\nFilepath: ')
 
-    # Exit if directory doesn't exist
-    if os.path.isdir(absdir) is False:
-        print('Exiting: \'%s\' directory doesn\'t exist.' % absdir)
-        return
+    # If the directory doesn't yet exist create it
+    if os.path.exists(absdir) is False:
+        try:
+            os.makedirs(absdir)
+            print('Created directory \'%s\' to store images.' % absdir)
+        except:
+            print('Error creating directory. Exiting')
+            return
+    else:
+        # If it wasn't just created, verify it is in fact a directory
+        if os.path.isdir(absdir) is False:
+            print('Exiting: \'%s\' is not a directory.' % absdir)
+            return
 
-    # Confirmation
-    print('Found directory! Images will be stored in \'%s\'\n' % absdir)
+        # Confirmation
+        print('Images will be stored in \'%s\'\n' % absdir)
 
     nums = [x for x in range(0, lastpageno + 50, 50)]
     urls = ['https://geekhack.org/index.php?topic=%d.%d' % (topicno, num)
@@ -157,12 +180,11 @@ def main():
 
     # Now, download all the images and save them
     for i, url in enumerate(all_image_urls):
-        downloadImg(url, absdir, url.rsplit('/', 1)[-1],
-                    len(all_image_urls) - (i + 1))
+        download_image(url, absdir, url.rsplit('/', 1)[-1],
+                       len(all_image_urls) - (i + 1))
 
-    print('\nGenerating report file...')
     # Finally, generate the report file
-    generateReport(absdir, all_post_ids, topicno)
+    generate_report(absdir, all_post_ids, topicno)
 
 if __name__ == '__main__':
     main()

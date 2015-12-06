@@ -23,10 +23,11 @@ Python 3.5.0
 // You should see the above message indicating the version of Python. In  
 // this case it is Python 3.5.0.  
 
-// From here, it is necessary to install the two following packages which  
+// From here, it is necessary to install the three following packages which  
 // aren't part of the default Python installation. This can be done using  
 // pip3 which is installed as part of Python 3.  
 
+$ sudo pip3 install lxml  
 $ sudo pip3 install beautifulsoup4  
 $ sudo pip3 install requests  
 
@@ -47,38 +48,73 @@ Geekhack Thread Image Downloader
 
 Enter URL of the LAST page of the thread to download images from.  
 (ie https://geekhack.org/index.php?topic=35864.12100)  
-Note: For it to work correctly, nothing should trail the numbers  
-      after topic= in the URL address.  
 URL: <enter_url_address_here>  
 
 // Once an appropriate URL address has been entered, the script will then  
-// ask for a directory path to store the images. This thread will not  
-// create the directory for you, it must already exist.  
+// ask for a directory path to store the images.  
 
-Enter the absolute filepath of an existing directory to store thread images.  
-(ie imgs directory on the Desktop would become   
- '/home/your_username/Desktop/imgs')  
-Filepath: </path/to/directory/here>  
-
-Found directory! Images will be stored in '/path/to/directory/here'  
+Enter the absolute filepath of an directory to store thread images.  
+It will be created if it does not already exist.  
+(ie imgs directory on the Desktop would become '/path/to/directory/here')  
+Filepath: <user_supplied_filepath>  
+Images will be stored in '/path/to/directory/here'  
 
 // After the directory path has been correctly entered, the script will  
-// verify its existance and start downloading images to it. You will see how  
-// many images are being downloaded and how many are left as progress is  
-// made.  
+// conditionally create a directory to store the images if it does not  
+// already exist.  
 
-Downloading 41 images  
-Downloading 2OfxT.jpg... 40 remaining  
-Downloading DSC_0219_zpsc638c74d.jpg... 39 remaining  
-Downloading DSC_0206_zpsdc726314.jpg... 38 remaining  
-Downloading TDzid.jpg... 37 remaining  
-Downloading 90.png... 36 remaining  
-Downloading tAQFK.jpg... 35 remaining  
+Finding images on page 1  
+Found 13 images!  
+Finding images on page 2  
+Found 14 images!  
+Finding images on page 3  
+Found 4 images!  
+Finding images on page 4  
+Found 4 images!  
+Finding images on page 5  
+Found 9 images!  
+Finding images on page 6  
+Found 10 images!  
+
+// The script will then iterate through all pages of the thread and find  
+// images to download. It will eliminate duplicates based on filename here.  
+// With each page it will display how many images it found.  
+
+Downloading 50 images  
+Downloading 6sl9n.jpg... 49 remaining  
+Downloading 20450618.jpg... 48 remaining  
+Downloading tumblr_lr4x4vJ7pk1qdy1rro1_500.jpg... 47 remaining  
+Downloading 2ziq1s9.jpg... 46 remaining  
+Downloading closeenough.png?1317606898... 45 remaining  
+Downloading g1338251854876997822.jpg... 44 remaining  
+Downloading DzbSf.jpg... 43 remaining  
+Downloading inawefacesparklyeyesdra.png... 42 remaining  
 ...  
 
+// It will then start downloading all the images to the previously specified  
+// directory. When it discovers that some have already been downloaded  
+// it will skip those.  
 
+Generating report file...
+Enter name for report file.
+Filename: <report_file_name>
+Report file will be placed at '/path/to/directory/here/<report_file_name>
 
+// Finally, after downloading all the images, it will request a name to store  
+// the report. The report file consists of all the image names and the URL  
+// address of the exact post they came from. Running head on the report  
+// file that was generated demonstrates how it is formatted below.  
+// Each filename is listed and on the second line a link to the post it was  
+// uploaded in follows.
 
+$ head <report_file_name>
 
+HrHw4.jpg  
+ https://geekhack.org/index.php?topic=35864.msgxxxxxxxxxxxxxxxxxx  
 
+12605554253_d16796e9af_b.jpg  
+ https://geekhack.org/index.php?topic=35864.msgxxxxxxxxxxxxxxxxxx  
+
+PydoYrV.jpg  
+ https://geekhack.org/index.php?topic=35864.msgxxxxxxxxxxxxxxxxxx  
 
