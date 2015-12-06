@@ -98,7 +98,7 @@ Downloading inawefacesparklyeyesdra.png... 42 remaining
 Generating report file...  
 Enter name for report file.  
 Filename: <report_file_name>  
-Report file will be placed at '/path/to/directory/here/<report_file_name>  
+Report file will be placed at '/path/to/directory/here/<report_file_name>'  
 
 // Finally, after downloading all the images, it will request a name to store  
 // the report. The report file consists of all the image names and the URL  
