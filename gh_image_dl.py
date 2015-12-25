@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import os
 import re
 import requests
@@ -102,27 +104,7 @@ def generate_report(absdir, all_post_ids, topicno):
             f.write('\n')
 
 
-def main():
-    print('\nGeekhack Thread Image Downloader\n')
-
-    base_url = input(
-        'Enter URL of the LAST page of the thread to download images from.\n'
-        + '(ie https://geekhack.org/index.php?topic=35864.12100)\n'
-        + 'Note: For it to work correctly, nothing should trail the numbers'
-        + '\n      after topic= in the URL address.\nURL: ')
-
-    # Collect relevant data from URL
-    m = re.match('.*topic=(\d+)\.(\d+)', base_url)
-    if m is None:
-        print('URL address doesn\'t match required format, Exiting.')
-        return
-
-    # Extract topic number
-    topicno = int(m.group(1))
-
-    # Extract last page of thread from URL
-    lastpageno = int(m.group(2))
-
+def prepare_directory():
     # Get directory name
     absdir = input('\nEnter the absolute filepath of an directory to '
                    + 'store thread images.\n'
@@ -137,18 +119,81 @@ def main():
             print('Created directory \'%s\' to store images.' % absdir)
         except:
             print('Error creating directory. Exiting')
-            return
+            raise PermissionError('Not correct permissions to create directory')
     else:
         # If it wasn't just created, verify it is in fact a directory
         if os.path.isdir(absdir) is False:
             print('Exiting: \'%s\' is not a directory.' % absdir)
-            return
+            raise NotADirectoryError('Not a directory')
 
         # Confirmation
         print('Images will be stored in \'%s\'\n' % absdir)
 
-    nums = [x for x in range(0, lastpageno + 50, 50)]
-    urls = ['https://geekhack.org/index.php?topic=%d.%d' % (topicno, num)
+    return absdir
+
+
+def get_thread_details():
+    while True:
+        try:
+            topic_no = int(input(
+                'Enter the topic number of the thread you want images downloaded'
+                + ' from.\nFor instance, if the entire URL of the thread is:\n'
+                + 'https://geekhack.org/index.php?topic=35864.12100\n'
+                + 'The topic number is what follows topic=. In this case that is'
+                + ' 35864\nTopic Number: '))
+            break
+        except:
+            print('Invalid topic number input.')
+
+    while True:
+        try:
+            start_page = int(input(
+                'Enter the starting page number you would like images downloaded.\n'
+                + '(ie 1 to start at the first page)\n'
+                + 'Start page number: '))
+            if start_page < 1:
+                print('Invalid start page input.')
+                continue
+            break
+        except:
+            print('Invalid start page input.')
+
+    while True:
+        try:
+            end_page = int(input(
+                'Enter the ending page you would like images downloaded.\n'
+                + '(ie 243 if you want images downloaded all the way to page 243)\n'
+                + 'It is acceptable to have the end page match the start page.\n'
+                + 'End page number: '))
+            if end_page < start_page:
+                print('Invalid end page input. Cannot be less then start page.')
+                continue
+            break
+        except:
+            print('Invalid end page input.')
+
+    return (topic_no, start_page, end_page)
+
+def main():
+    print('\nGeekhack Thread Image Downloader\n')
+
+    # Obtain topic, start page, and end page
+    topic_no, start_page, end_page = get_thread_details()
+
+    # prepare directory for storing images
+    try:
+        absdir = prepare_directory()
+    except PermissionError:
+        print('Permission error creating directory.')
+        return
+    except NotADirectoryError:
+        print('Path specified was not a directory')
+        return
+    except:
+        print('Unknown error occurred creating/finding directory')
+
+    nums = [x for x in range((start_page - 1) * 50, (end_page) * 50, 50)]
+    urls = ['https://geekhack.org/index.php?topic=%d.%d' % (topic_no, num)
             for num in nums]
 
     # dictionary to contain all images found and post id they came from
@@ -158,7 +203,7 @@ def main():
     # Find and download all images in a single page
     for i, url in enumerate(urls):
 
-        print('Finding images on page %d' % (i + 1))
+        print('Finding images on page %d' % (i + start_page + 1))
         image_urls, post_ids = find_images(url)
 
         print('Found %d images!' % len(image_urls))
@@ -184,7 +229,7 @@ def main():
                        len(all_image_urls) - (i + 1))
 
     # Finally, generate the report file
-    generate_report(absdir, all_post_ids, topicno)
+    generate_report(absdir, all_post_ids, topic_no)
 
 if __name__ == '__main__':
     main()
