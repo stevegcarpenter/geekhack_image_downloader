@@ -5,6 +5,40 @@ import re
 import requests
 from bs4 import BeautifulSoup
 from collections import defaultdict
+from PIL import Image
+
+
+def get_yes_no():
+    while True:
+        try:
+            reply = input('Is this OK? [y/N] ')
+            if 'yes'.startswith(reply.lower()):
+                return True
+            elif 'no'.startswith(reply.lower()):
+                return False
+            else:
+                print('Invalid input 1')
+        except:
+            print('Invalid input 2')
+
+
+def delete_corrupt_images(absdir):
+    print('\nWould you like to delete all corrupt files?\nNote: Some files '
+          + 'that are very damaged will have errors while trying to read them'
+          + '\n and this will output messages to the command line, but this is'
+          + ' to be expected.')
+
+    if get_yes_no() is False:
+        return
+
+    for subdir, dirs, files in os.walk(absdir):
+        for file in files:
+            absfilename = os.path.join(absdir, file)
+            try:
+                Image.open(absfilename)
+            except:
+                print('Removing corrupt file \'%s\'' % absfilename)
+                os.remove(absfilename)
 
 
 def find_images(url):
@@ -35,6 +69,8 @@ def find_images(url):
 
                 # Check for invalid images
                 if 'PHPSESSID' in image_url:
+                    continue
+                if 'emoji' in image_url:
                     continue
                 if image_url.endswith('.gif') or image_url.endswith('.html'):
                     continue
@@ -118,13 +154,17 @@ def prepare_directory():
             os.makedirs(absdir)
             print('Created directory \'%s\' to store images.' % absdir)
         except:
-            print('Error creating directory. Exiting')
-            raise PermissionError('Not correct permissions to create directory')
+            print('Exiting. No permissions to create directory \'%s\'.'
+                  % absdir)
+            raise PermissionError
     else:
-        # If it wasn't just created, verify it is in fact a directory
+        # If it the path already exists, verify it is in fact a directory
         if os.path.isdir(absdir) is False:
             print('Exiting: \'%s\' is not a directory.' % absdir)
-            raise NotADirectoryError('Not a directory')
+            raise NotADirectoryError
+        elif os.access(absdir, os.W_OK) is False:
+            print('Exiting. No permissions to write to \'%s\'' % absdir)
+            raise PermissionError
 
         # Confirmation
         print('Images will be stored in \'%s\'\n' % absdir)
@@ -136,11 +176,12 @@ def get_thread_details():
     while True:
         try:
             topic_no = int(input(
-                'Enter the topic number of the thread you want images downloaded'
-                + ' from.\nFor instance, if the entire URL of the thread is:\n'
+                'Enter the topic number of the thread you want images '
+                + 'downloaded from.\nFor instance, if the entire URL of the '
+                + 'thread is:\n'
                 + 'https://geekhack.org/index.php?topic=35864.12100\n'
-                + 'The topic number is what follows topic=. In this case that is'
-                + ' 35864\nTopic Number: '))
+                + 'The topic number is what follows topic=. In this case that'
+                + ' is 35864\nTopic Number: '))
             break
         except:
             print('Invalid topic number input.')
@@ -148,9 +189,9 @@ def get_thread_details():
     while True:
         try:
             start_page = int(input(
-                'Enter the starting page number you would like images downloaded.\n'
-                + '(ie 1 to start at the first page)\n'
-                + 'Start page number: '))
+                'Enter the starting page number you would like images '
+                + 'downloaded.\n(ie 1 to start at the first page)\nStart page'
+                + ' number: '))
             if start_page < 1:
                 print('Invalid start page input.')
                 continue
@@ -162,11 +203,12 @@ def get_thread_details():
         try:
             end_page = int(input(
                 'Enter the ending page you would like images downloaded.\n'
-                + '(ie 243 if you want images downloaded all the way to page 243)\n'
-                + 'It is acceptable to have the end page match the start page.\n'
-                + 'End page number: '))
+                + '(ie 243 if you want images downloaded all the way to page'
+                + ' 243)\nIt is acceptable to have the end page match the '
+                + 'start page.\nEnd page number: '))
             if end_page < start_page:
-                print('Invalid end page input. Cannot be less then start page.')
+                print('Invalid end page input. Cannot be less then start '
+                      + 'page.')
                 continue
             break
         except:
@@ -174,36 +216,12 @@ def get_thread_details():
 
     return (topic_no, start_page, end_page)
 
-def main():
-    print('\nGeekhack Thread Image Downloader\n')
 
-    # Obtain topic, start page, and end page
-    topic_no, start_page, end_page = get_thread_details()
+def find_images_all_pages(page_urls, all_image_urls, all_post_ids, start_page):
+    # Find and collect all images
+    for i, url in enumerate(page_urls):
 
-    # prepare directory for storing images
-    try:
-        absdir = prepare_directory()
-    except PermissionError:
-        print('Permission error creating directory.')
-        return
-    except NotADirectoryError:
-        print('Path specified was not a directory')
-        return
-    except:
-        print('Unknown error occurred creating/finding directory')
-
-    nums = [x for x in range((start_page - 1) * 50, (end_page) * 50, 50)]
-    urls = ['https://geekhack.org/index.php?topic=%d.%d' % (topic_no, num)
-            for num in nums]
-
-    # dictionary to contain all images found and post id they came from
-    all_image_urls = []
-    all_post_ids = defaultdict(list)
-
-    # Find and download all images in a single page
-    for i, url in enumerate(urls):
-
-        print('Finding images on page %d' % (i + start_page + 1))
+        print('Finding images on page %d' % (i + start_page))
         image_urls, post_ids = find_images(url)
 
         print('Found %d images!' % len(image_urls))
@@ -216,20 +234,65 @@ def main():
             if image_name not in all_post_ids:
                 all_image_urls.append(url)
 
+        # Add the post ID of the first instance of each image to a dictionary
+        # for use when creating the report file.
         for _image_name, _post_id_list in post_ids.items():
             for _post_id in _post_id_list:
+                # Only add post id to dictionary if it's not already present
                 if _image_name not in all_post_ids:
                     all_post_ids[_image_name].append(_post_id)
 
-    print('\nDownloading %d images' % len(all_image_urls))
 
-    # Now, download all the images and save them
+def generate_page_urls(topic_no, start_page, end_page):
+    nums = [x for x in range((start_page - 1) * 50, (end_page) * 50, 50)]
+    return ['https://geekhack.org/index.php?topic=%d.%d' %
+            (topic_no, num) for num in nums]
+
+
+def download_all_images(absdir, all_image_urls):
     for i, url in enumerate(all_image_urls):
         download_image(url, absdir, url.rsplit('/', 1)[-1],
                        len(all_image_urls) - (i + 1))
 
+
+def main():
+    print('\nGeekhack Thread Image Downloader\n')
+
+    # Obtain topic, start page, and end page
+    topic_no, start_page, end_page = get_thread_details()
+
+    # prepare directory for storing images
+    try:
+        absdir = prepare_directory()
+    except PermissionError:
+        return
+    except NotADirectoryError:
+        return
+    except:
+        print('Unknown error occurred creating/finding directory')
+
+    # using topic number, start and end page create all thread page urls
+    page_urls = generate_page_urls(topic_no, start_page, end_page)
+
+    # list of all image urls found on all pages of thread
+    all_image_urls = []
+    # dictionary to contain all images found and post id they came from
+    all_post_ids = defaultdict(list)
+
+    # Find images on all pages
+    find_images_all_pages(page_urls, all_image_urls, all_post_ids, start_page)
+
+    print('\nDownloading %d images' % len(all_image_urls))
+
+    # Now, download all the images and save them
+    download_all_images(absdir, all_image_urls)
+
+    # Optionally delete corrupt images
+    delete_corrupt_images(absdir)
+
     # Finally, generate the report file
     generate_report(absdir, all_post_ids, topic_no)
+
 
 if __name__ == '__main__':
     main()
