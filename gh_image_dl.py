@@ -11,18 +11,18 @@ from PIL import Image
 def get_yes_no():
     while True:
         try:
-            reply = input('Is this OK? [y/N] ')
+            reply = input('Is this OK? [yes/no] ')
             if 'yes'.startswith(reply.lower()):
                 return True
             elif 'no'.startswith(reply.lower()):
                 return False
             else:
-                print('Invalid input 1')
+                print('Invalid input.')
         except:
-            print('Invalid input 2')
+            print('Invalid input')
 
 
-def delete_corrupt_images(absdir):
+def delete_corrupt_images(absdir, all_post_ids):
     print('\nWould you like to delete all corrupt files?\nNote: Some files '
           + 'that are very damaged will have errors while trying to read them'
           + '\n and this will output messages to the command line, but this is'
@@ -31,14 +31,13 @@ def delete_corrupt_images(absdir):
     if get_yes_no() is False:
         return
 
-    for subdir, dirs, files in os.walk(absdir):
-        for file in files:
-            absfilename = os.path.join(absdir, file)
-            try:
-                Image.open(absfilename)
-            except:
-                print('Removing corrupt file \'%s\'' % absfilename)
-                os.remove(absfilename)
+    for img_name, post_id_list in all_post_ids.items():
+        absimgpath = os.path.join(absdir, img_name)
+        try:
+            Image.open(absimgpath)
+        except:
+            print('Removing corrupt file \'%s\'' % absimgpath)
+            os.remove(absimgpath)
 
 
 def find_images(url):
@@ -288,7 +287,7 @@ def main():
     download_all_images(absdir, all_image_urls)
 
     # Optionally delete corrupt images
-    delete_corrupt_images(absdir)
+    delete_corrupt_images(absdir, all_post_ids)
 
     # Finally, generate the report file
     generate_report(absdir, all_post_ids, topic_no)
