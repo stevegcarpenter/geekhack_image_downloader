@@ -37,8 +37,8 @@ $ sudo pip3 install Pillow
 $ pip3 freeze  
 
 beautifulsoup4 version 4.4.1  
-lxml==3.5.0
-Pillow==3.0.0
+lxml==3.5.0  
+Pillow==3.0.0  
 requests version 2.8.1  
 
 // Once these packages have been successfully installed, the script  
