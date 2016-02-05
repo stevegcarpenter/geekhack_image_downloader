@@ -23,6 +23,10 @@ def get_yes_no():
 
 
 def delete_corrupt_images(absdir, all_post_ids):
+    ''' Optionally delete any corrupt files that are constructed using the
+        absolute directory path and filename. Filename is pulled from the
+        defaultdict passed in as the second argument '''
+
     print('\nWould you like to delete all corrupt files?\nNote: Some files '
           + 'that are very damaged will have errors while trying to read them'
           + '\n and this will output messages to the command line, but this is'
@@ -41,6 +45,13 @@ def delete_corrupt_images(absdir, all_post_ids):
 
 
 def find_images(url):
+    ''' Given a URL address of a GeekHack thread, find any image URLs by
+        parsing the pages HTML for any anchor tags that have the class
+        highslide. Add these to the image_tags list and avoid duplicates
+        by tracking all found images in the post_ids defaultdict. The
+        secondary purpose of the defaultdict post_ids is to hold the message
+        id that the image tag was posted in to provide a way to reconstruct
+        a URL address of the original post where the image was found. '''
     r = requests.get(url)
     soup = BeautifulSoup(r.content, 'lxml')
 
@@ -85,10 +96,15 @@ def find_images(url):
             except:
                 pass
 
-    return image_urls, post_ids
+    return (image_urls, post_ids)
 
 
 def download_image(url, absdir, localFilename, numLeft):
+    ''' Attempt to download the image 'localFilename' from the URL supplied.
+        If successful, save this to the filesystem by constructing the full
+        filepath using the absolute directory path 'absdir' and
+        'localFilename' to construct a full filepath. Then, display the number
+        of images that are left to download using the numLeft argument. '''
     try:
         fullfilepath = os.path.join(absdir, localFilename)
 
@@ -106,6 +122,9 @@ def download_image(url, absdir, localFilename, numLeft):
 
 
 def generate_report(absdir, all_post_ids, topicno):
+    ''' Using the all_post_ids defaultdict, create a report file that contains
+        reconstructed URL addresses of the exact message post where each image
+        was downloaded from. '''
     print('\nGenerating report file...')
     while True:
         fn = input('Enter name for report file.\nFilename: ')
@@ -140,6 +159,10 @@ def generate_report(absdir, all_post_ids, topicno):
 
 
 def prepare_directory():
+    ''' Request an absolute filepath for the script to store images. If the
+        directory doesn't yet exist, attempt to create it. If issues are
+        encountered while creating the directory, report failure. If the
+        directory already exists, state so and return. '''
     # Get directory name
     absdir = input('\nEnter the absolute filepath of an directory to '
                    + 'store thread images.\n'
@@ -172,6 +195,9 @@ def prepare_directory():
 
 
 def get_thread_details():
+    ''' Request the needed details for the thread and return them as a tuple.
+        Do some value checking and prompt for new values when the user gives
+        bogus data. '''
     while True:
         try:
             topic_no = int(input(
@@ -217,38 +243,44 @@ def get_thread_details():
 
 
 def find_images_all_pages(page_urls, all_image_urls, all_post_ids, start_page):
+    ''' Find all images on each thread URL in the list and add them to the
+        all_image_urls list if they are unique. '''
     # Find and collect all images
     for i, url in enumerate(page_urls):
 
         print('Finding images on page %d' % (i + start_page))
         image_urls, post_ids = find_images(url)
 
-        print('Found %d images!' % len(image_urls))
-
+        imgfound = 0
         for url in image_urls:
             # Get the image name from the end of the URL
             image_name = url.rsplit('/', 1)[-1]
 
-            # If this image has never been encountered before add it
+            # If this image has never been encountered before add the image
+            # to the all_image_urls list and add the post id to the
+            # all_post_ids dictionary. This means only post ids for the first
+            # encounter of the image are saved.
             if image_name not in all_post_ids:
                 all_image_urls.append(url)
+                all_post_ids[image_name].append(post_ids[image_name][0])
+                # Increment the number of non-duplicate images found
+                imgfound += 1
 
-        # Add the post ID of the first instance of each image to a dictionary
-        # for use when creating the report file.
-        for _image_name, _post_id_list in post_ids.items():
-            for _post_id in _post_id_list:
-                # Only add post id to dictionary if it's not already present
-                if _image_name not in all_post_ids:
-                    all_post_ids[_image_name].append(_post_id)
+        print('Found %d images!' % imgfound)
 
 
 def generate_page_urls(topic_no, start_page, end_page):
+    ''' Create all thread page URLs using the topic number, start, and
+        end page. It is known that their are 50 posts per page and each
+        page increments the value following the topic number by 50. '''
     nums = [x for x in range((start_page - 1) * 50, (end_page) * 50, 50)]
     return ['https://geekhack.org/index.php?topic=%d.%d' %
             (topic_no, num) for num in nums]
 
 
 def download_all_images(absdir, all_image_urls):
+    ''' Walk the list of image URLs and download the images to the absolute
+        directory path + the filename '''
     for i, url in enumerate(all_image_urls):
         download_image(url, absdir, url.rsplit('/', 1)[-1],
                        len(all_image_urls) - (i + 1))
